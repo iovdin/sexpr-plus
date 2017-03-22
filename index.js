@@ -246,20 +246,11 @@ var quotedExpressionParser = (function () {
     .then(succeed("unquote-splicing"))
     .mark().map(toAtomNode);
 
-  var anyQuote = alt(quote, quasiquote, unquoteSplicing, unquote);
-
-  var main = lexeme(anyQuote).chain(function(quoteResult) {
-    return expression.mark().map(function(exprResult) {
-
-      var node = {
-        value : [ quoteResult, exprResult.value ],
-        start : quoteResult.start,
-        end : exprResult.end
-      };
-
-      return toListNode(node);
-    });
-  }).desc("quoted expression");
+  var anyQuote = alt(quote, quasiquote, unquoteSplicing, unquote)
+                  
+  var main = seq(lexeme(anyQuote), expression)
+    .mark().map(toListNode)
+    .desc("quoted expression");
 
   quotedExpressionParserLater._ = main._;
 
