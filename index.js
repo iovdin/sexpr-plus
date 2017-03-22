@@ -41,13 +41,22 @@ var succeed = Parsimmon.succeed;
 
 })(); // End of monkey patch
 
+// reduce side effects
+function cloneLoc(loc) {
+  return {
+    line: loc.line,
+    column: loc.column,
+    offset: loc.offset
+  }
+}
+
 var toStringNode = function(node) {
   return {
     type : "string",
     content : node.value.join(""),
     location : {
-      start : node.start,
-      end : node.end
+      start : cloneLoc(node.start),
+      end : cloneLoc(node.end)
     }
   };
 };
@@ -59,8 +68,8 @@ var toAtomNode = function(node) {
     type : "atom",
     content : d.join ? d.join("") : d,
     location : {
-      start : node.start,
-      end : node.end
+      start : cloneLoc(node.start),
+      end : cloneLoc(node.end)
     }
   };
 };
@@ -69,8 +78,8 @@ var toListNode = function(node) {
     type : "list",
     content : node.value,
     location : {
-      start : node.start,
-      end : node.end
+      start : cloneLoc(node.start),
+      end : cloneLoc(node.end)
     }
   };
 };
@@ -314,7 +323,10 @@ return {
       string : stringParser,
       quotedExpression : quotedExpressionParser,
     }
-  }
+  },
+  toAtomNode: toAtomNode,
+  toStringNode: toStringNode,
+  toListNode: toListNode
 };
 
 }; // end of constructor
