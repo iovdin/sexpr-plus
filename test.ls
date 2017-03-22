@@ -279,6 +279,70 @@ test-with-modifications do
         ascii-escape
         p.clone p.sub.composite.string.sub.escaped-character
 
+test-with-modifications do
+  "Transformer can parse dot property access "
+  'a.b.c'
+  [ [\. \a \b \c] ]
+  (p) ->
+    # Add a parser that parses . property notiation into (. properties).
+    # First we create the necessary parser, mapping every result through a
+    # function that prepends the "array" atom to each of the parsed lists'
+    # contents.
+    string = p.parsimmon.string
+    lexeme = p.sub.basic.lexeme
+    dot-char = string \.
+    atom = p.sub.composite.atom.main
+    object-property-parser = p.parsimmon
+      .seq atom, dot-char.then(atom).atLeast(1)
+      .mark!
+      .map ->
+        value = it.value[1]
+        value.unshift it.value[0];
+        value.unshift p.toAtomNode {
+          value: \.,
+          start: it.start,
+          end: it.end
+        }
+        p.toListNode {
+          value,
+          start: it.start,
+          end: it.end
+        }
+     #do
+      #atom
+      #.mark!
+      #.map p.toAtomNode
+      #.skip dot-char
+      #character.atLeast
+      #.map ->
+        #it.value.unshift {
+          #type : \atom
+          #content : \array
+          #location :
+            #start : it.start
+            #end : it.start
+        #}
+        #type : \list
+        #content : it.value
+        #location :
+          #start : it.start
+          #end  : it.end
+
+    # Register that as an alternative for expressions.
+
+    p.replace do
+      p.sub.basic.expression
+      p.parsimmon.alt do
+        object-property-parser
+        p.clone p.sub.basic.expression
+
+    # So we don't lose the ability to use "."  in atoms, we also have to
+
+    p.replace do
+      p.sub.composite.atom.sub.charNeedingEscape
+      p.parsimmon.alt do
+        dot-char
+        p.clone p.sub.composite.atom.sub.charNeedingEscape
 #
 # Location information
 #
