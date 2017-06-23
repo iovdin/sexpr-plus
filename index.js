@@ -8,39 +8,6 @@ var alt = Parsimmon.alt;
 var eof = Parsimmon.eof;
 var succeed = Parsimmon.succeed;
 
-// The contents of this IIFE monkey-patch the Parsimmon's parser prototype's
-// `.mark` method to support line and column locations.  When
-// https://github.com/jneen/parsimmon/pull/56 (or something like it) is merged
-// upstream, this can go.
-(function() {
-
-  var indexLC = Parsimmon.custom(function(success, failure) {
-    return function(stream, i) {
-      // Like `index` above, but emitting an object that contains line and
-      // column indices in addition to the character-based one.
-
-      var lines = stream.slice(0, i).split("\n");
-
-      // Unlike the character offset, lines and columns are 1-based.
-      var lineWeAreUpTo = lines.length;
-      var columnWeAreUpTo = lines[lines.length - 1].length + 1;
-
-      return success(i, {
-        offset: i,
-        line: lineWeAreUpTo,
-        column: columnWeAreUpTo
-      });
-    };
-  });
-
-  Parsimmon.Parser.prototype.mark = function() {
-    return Parsimmon.seqMap(indexLC, this, indexLC, function(start, value, end) {
-      return { start: start, value: value, end: end };
-    });
-  };
-
-})(); // End of monkey patch
-
 // reduce side effects
 function cloneLoc(loc) {
   return {
@@ -95,13 +62,13 @@ var quoteChar = string("'");
 var quasiquoteChar = string("`");
 var unquoteChar = string(",");
 var unquoteSplicingModifierChar = string("@");
-var whitespaceChar = regex(/\s/);
+var whitespaceChar = regex(/\s/).desc("whitespace");
 var whitespace = whitespaceChar.atLeast(1);
 
 var endOfLineComment = commentChar
   .then(regex(/[^\n]*/))
   .skip(alt(string("\n"), eof))
-  .desc("end-of-line comment");
+  //.desc("end-of-line comment");
 
 var optWhitespace = alt(endOfLineComment, whitespace).many();
 var lexeme = function(p) { return p.skip(optWhitespace); };
@@ -163,16 +130,16 @@ var stringParser = (function() {
 
   var character = alt(normalChar, escapedChar);
 
-  var content = character.many().desc("string content");
+  var content = character.many()//.desc("string content");
 
   var main = lexeme(
-    (delimiter.desc("string-opener"))
+    (delimiter
       .then(content)
-      .skip(delimiter.desc("string-terminator"))
+      .skip(delimiter)
       .mark()
       .map(toStringNode)
-      .desc("string literal")
-  );
+      //.desc("string literal")
+  ));
 
   return {
     main : main,
@@ -210,7 +177,7 @@ var atomParser = (function() {
     character.atLeast(1)
       .mark()
       .map(toAtomNode)
-      .desc("atom")
+      //.desc("atom")
   );
   return {
     main : main,
@@ -223,8 +190,8 @@ var atomParser = (function() {
   };
 })();
 
-var listOpener = lexeme(openParenChar).desc("opening paren");
-var listTerminator = lexeme(closeParenChar).desc("closing paren");
+var listOpener = lexeme(openParenChar)//.desc("opening paren");
+var listTerminator = lexeme(closeParenChar)//.desc("closing paren");
 
 var listParserLater = Parsimmon.custom(function() {});
 var quotedExpressionParserLater = Parsimmon.custom(function() {});
@@ -235,7 +202,7 @@ var expression = alt(
   quotedExpressionParserLater
 );
 
-var listContent = expression.many().desc("list content");
+var listContent = expression.many()//.desc("list content");
 var list = listOpener.then(listContent).skip(listTerminator)
   .mark()
   .map(toListNode);
@@ -259,7 +226,7 @@ var quotedExpressionParser = (function () {
                   
   var main = seq(lexeme(anyQuote), expression)
     .mark().map(toListNode)
-    .desc("quoted expression");
+    //.desc("quoted expression");
 
   quotedExpressionParserLater._ = main._;
 
@@ -275,7 +242,7 @@ var quotedExpressionParser = (function () {
   };
 })();
 
-var shebangLine = regex(/^#![^\n]*/).skip(alt(string("\n"), eof)).desc("shebang line");
+var shebangLine = regex(/^#![^\n]*/).skip(alt(string("\n"), eof))//.desc("shebang line");
 
 var main = shebangLine.atMost(1)
   .then(optWhitespace)

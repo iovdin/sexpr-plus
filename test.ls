@@ -308,26 +308,6 @@ test-with-modifications do
           start: it.start,
           end: it.end
         }
-     #do
-      #atom
-      #.mark!
-      #.map p.toAtomNode
-      #.skip dot-char
-      #character.atLeast
-      #.map ->
-        #it.value.unshift {
-          #type : \atom
-          #content : \array
-          #location :
-            #start : it.start
-            #end : it.start
-        #}
-        #type : \list
-        #content : it.value
-        #location :
-          #start : it.start
-          #end  : it.end
-
     # Register that as an alternative for expressions.
 
     p.replace do
